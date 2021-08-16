@@ -1,9 +1,12 @@
 // import libraries
 const express = require('express');
 const app = express();
+const jwt = require('express-jwt');
+const jwksRsa = require('jwks-rsa');
+const jwtAuthz = require('express-jwt-authz');
 const cors = require('cors');
 const bodyParser = require('body-parser');
-const axios = require('axios')
+const axios = require('axios');
 
 // configure .env variables
 require('dotenv').config();
@@ -56,6 +59,22 @@ getAccessToken();
 // Enable CORS
 app.use(cors());
 
+// Create middleware for checking the JWT
+const checkJwt = jwt({
+  // Dynamically provide a signing key based on the kid in the header and the singing keys provided by the JWKS endpoint.
+  secret: jwksRsa.expressJwtSecret({
+    cache: true,
+    rateLimit: true,
+    jwksRequestsPerMinute: 5,
+    jwksUri: 'https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json'
+  }),
+
+  // Validate the audience and the issuer.
+  audience: process.env.API_AUDIENCE,
+  issuer: 'https://${process.env.AUTH0_DOMAIN}/',
+  algorithms: ['RS256']
+});
+
 // Enable the use of request body parsing middleware
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
@@ -63,10 +82,10 @@ app.use(bodyParser.urlencoded({
 }));
 
 // route to get the user data from Auth0 Management API
-app.get('/user/:id', function (req, res) {
+app.get('/user/:id', checkJwt, function (req, res) {
 
   // if accessToken is null
-  if(accessToken=="") {
+  if(accessToken==='') {
 
     getAccessToken();
 
