@@ -1,6 +1,7 @@
 // import libraries
 const express = require("express");
 const app = express();
+const cors = require("cors");
 const jwt = require("express-jwt");
 const jwksRsa = require("jwks-rsa");
 const jwtAuthz = require("express-jwt-authz");
@@ -55,15 +56,7 @@ function getAccessToken() {
 getAccessToken();
 
 // Enable CORS
-app.use(function(req, res, next){
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requestes-With, Content-Type, Accept, Authorization"
-  );
-  res.header("Access-Control-Allow-Methods", "GET, OPTIONS");
-  next();
-});
+app.use(cors());
 
 // Create middleware for checking the JWT
 const checkJwt = jwt({
