@@ -1,4 +1,3 @@
-// import libraries
 const express = require("express");
 const app = express();
 const cors = require("cors");
@@ -8,23 +7,22 @@ const jwtAuthz = require("express-jwt-authz");
 const bodyParser = require("body-parser");
 const axios = require("axios");
 
-// configure .env variables
 require("dotenv").config();
 
 if (!process.env.AUTH0_DOMAIN || !process.env.AUTH0_AUDIENCE) {
   throw "Make sure you have AUTH0_DOMAIN, and AUTH0_AUDIENCE in your .env file";
 }
 
-// The access token to access the Auth0 Management API
+// token to get data from the Auth0 Management API
 accessToken = "";
 
-// Function to renew Auth0 Management API access token
+// function that periodically renews Auth0 Management API access token
 function getAccessToken() {
 
   // time after which token must be refreshed, will be updated later
   refreshAfter = -1;
 
-  // required parameter to pass to Auth0 Management API OAuth
+  // required parameter to pass to the Auth0 Management API OAuth
   const body = JSON.stringify({
     "client_id": process.env.CLIENT_ID,
     "client_secret": process.env.CLIENT_SECRET,
@@ -32,14 +30,12 @@ function getAccessToken() {
     "grant_type": process.env.GRANT_TYPE
   });
 
-  // axios request to get the access token
+  // fetch the access token
   axios.post(`https://${process.env.AUTH0_DOMAIN}/oauth/token`, body, {
     headers: {
-      // Overwrite Axios"s automatically set Content-Type
       "Content-Type": "application/json"
     }
   }).then(function (response) {
-    // get the access token
     accessToken = response.data.access_token;
 
     // token must refresh every 10 minutes before the expiration time
@@ -52,23 +48,19 @@ function getAccessToken() {
   });
 }
 
-// execute the function for the first time
+// get access token on server start
 getAccessToken();
 
-// Enable CORS
 app.use(cors());
 
-// Create middleware for checking the JWT
+// Create JWT processor
 const checkJwt = jwt({
-  // Dynamically provide a signing key based on the kid in the header and the singing keys provided by the JWKS endpoint.
   secret: jwksRsa.expressJwtSecret({
     cache: true,
     rateLimit: true,
     jwksRequestsPerMinute: 5,
     jwksUri: `https://${process.env.AUTH0_DOMAIN}/.well-known/jwks.json`
   }),
-
-  // Validate the audience and the issuer.
   audience: process.env.API_AUDIENCE,
   issuer: `https://${process.env.AUTH0_DOMAIN}/`,
   algorithms: ["RS256"]
@@ -91,11 +83,8 @@ app.get("/user/:id", checkJwt, jwtAuthz(["read:userdata"]), function (req, res) 
   // if accessToken is empty, get a new access token
   // else process the request
   if(accessToken==="") {
-
     getAccessToken();
-
   } else {
-
     var options = {
       method: "GET",
       url: `https://${process.env.AUTH0_DOMAIN}/api/v2/users/${req.params.id}`,
@@ -104,17 +93,16 @@ app.get("/user/:id", checkJwt, jwtAuthz(["read:userdata"]), function (req, res) 
       }
     };
     
-    // send request
+    // retrieve user data from Auth0 API
     axios.request(options).then(function (response) {
-      // user data found
       res.status(200).send(response.data);
     }).catch(function (error) {
-      // send error message and log it
       res.status(200).send({"message":`${error.message}`});
     });
-    
   }
 });
 
 // launch the API Server
 app.listen(process.env.PORT || 8080);
+
+module.exports = app;
