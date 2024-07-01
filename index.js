@@ -77,6 +77,11 @@ app.get("/", function(req, res){
   res.status(200).send({"message":"API is functional."})
 });
 
+// route to download ruby bootstrap for a specific android arch
+app.get("/ruby/:version/:arch", function(req, res){
+  res.status(200).redirect(`https://github.com/jekyllex/ruby-android/releases/download/${req.params.version}/ruby-${req.params.arch}`);
+});
+
 // route to get the user data from Auth0 Management API
 app.get("/user/:id", checkJwt, jwtAuthz(["read:userdata"]), function (req, res) {
 
