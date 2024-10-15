@@ -108,4 +108,4 @@ app.get("/user/:id", checkJwt, jwtAuthz(["read:userdata"]), function (req, res) 
 });
 
 // launch the API Server
-app.listen(process.env.PORT || 8080);
+app.listen(process.env.PORT || 5000);
